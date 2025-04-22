@@ -63,7 +63,15 @@ func SplitEventTimes(s string) TimeFmt {
 
 func TranslateTimeStrToHHMM(s string) string {
 	if !strings.Contains(s, ":") {
-		return fmt.Sprintf("%s:00", s)
+		if s == "noon" {
+			return "12:00"
+		} else if strings.HasSuffix(s, "m") {
+			ampm := s[len(s)-2:]
+			h := strings.TrimRight(s, ampm)
+			return fmt.Sprintf("%s:00%s", h, ampm)
+		} else {
+			return fmt.Sprintf("%s:00", s)
+		}
 	}
 	return s
 }
@@ -85,6 +93,7 @@ func SanitizeTimes(s string) string {
 	s = strings.ReplaceAll(s, "	", "")
 	s = strings.ReplaceAll(s, `
 `, "")
+	s = strings.ReplaceAll(s, "–", "-")
 	s = strings.ReplaceAll(s, " ", "")
 	return s
 }

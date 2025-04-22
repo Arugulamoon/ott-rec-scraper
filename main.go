@@ -13,7 +13,7 @@ import (
 func main() {
 	c := colly.NewCollector(
 		colly.AllowedDomains("ottawa.ca"),
-		// colly.CacheDir("./cache"),
+		colly.CacheDir("./cache"),
 	)
 
 	c.OnRequest(func(r *colly.Request) {
@@ -22,14 +22,25 @@ func main() {
 		fmt.Println()
 	})
 
+	type Facility struct {
+		Name string
+	}
+
 	type Event struct {
 		Day  string
 		Name string
 		Time timefmt.TimeFmt
 	}
 
+	c.OnHTML("h1[class=page-title]", func(h *colly.HTMLElement) {
+		facility := Facility{
+			Name: h.DOM.Find("span").Text(),
+		}
+		fmt.Printf("Facility: %v\n", facility)
+	})
+
 	c.OnHTML("div[class=field__item]", func(h *colly.HTMLElement) {
-		if h.DOM.Find("button").Text() == "Drop-in schedule - skating" {
+		if strings.HasPrefix(h.DOM.Find("button").Text(), "Drop-in schedule") {
 			tbl := h.DOM.Find("table")
 
 			// Get Start and End Date of Recurring Event
@@ -43,6 +54,9 @@ func main() {
 			tbl.Find("thead > tr > th").Each(func(_ int, s *goquery.Selection) {
 				days = append(days, strings.TrimSpace(s.Text()))
 			})
+			if len(days) == 8 {
+				days = days[1:]
+			}
 
 			var events []Event
 			events = make([]Event, 0)
@@ -53,7 +67,7 @@ func main() {
 						times := timefmt.TranslateEvents(s.Text())
 						for _, time := range times {
 							events = append(events, Event{
-								Day:  days[i+1],
+								Day:  days[i],
 								Name: name,
 								Time: time,
 							})
